@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+import torch
 
 import pandas as pd
 
@@ -35,7 +36,7 @@ def process_data(reports_df, images_df, images_dir):
     @param reports_table:
     @param images_table:
     @param images_dir:
-    @return: a 3 tuple - number of useable images, number of seedling images, number of images in the report but not in the folder
+    @return: - number of useable images, number of seedling images, number of images in the report but not in the folder
     '''
     reports_dic = {}
     seedlings_dic = {}
@@ -45,7 +46,7 @@ def process_data(reports_df, images_df, images_dir):
         if reports_df[9][i] == 'Seedling':
             seedlings_dic[report_id] = []
         else:
-            reports_dic[report_id] = []
+            reports_dic[report_id] = {'infest_level': reports_df[7][i], 'images': []}
 
     num_images_not_in_reports = 0
     num_missing_image_files = 0
@@ -59,7 +60,7 @@ def process_data(reports_df, images_df, images_dir):
             num_missing_image_files += 1
             continue
         if measurement_id in reports_dic:
-            reports_dic[measurement_id].append(image_file_path)
+            reports_dic[measurement_id]['images'].append(image_file_path)
         elif measurement_id in seedlings_dic:
             seedlings_dic[measurement_id].append(image_file_path)
         else:
@@ -79,16 +80,20 @@ def generate_batch(batch_size, seed=0):
     '''
 
 
-# class FawDataset(torch.utils.data.Dataset):
-#     def __init__(self,reports_file, measurements_table, images_root_dir, transform = None ):
-#         self.reports_df = pd.read_excel(reports_file, header=None)
-#
-#     def __getitem__(self, item):
-#         pass
-#     def __len__(self):
+class FawDataset(torch.utils.data.Dataset):
+    def __init__(self,usealbe_reports, transform = None ):
+        self.reports = useable_reports
+
+    def __getitem__(self, item):
+        # TODO ge item should somehow return all the images of a specific report
+        pass
+    def __len__(self):
+        len(self.reports.items())
 
 # %%
-
+'''
+Data processing cell
+'''
 reports_file = "D:\Kenya IPM field reports.xls"
 images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
 reports_df = pd.read_excel(reports_file, header=None)
