@@ -1,8 +1,7 @@
 import os
-from collections import defaultdict
-import torch
 
 import pandas as pd
+import torch
 
 
 def fix_id(id, i=-1):
@@ -36,11 +35,19 @@ def process_data(reports_df, images_df, images_dir):
     @param reports_table:
     @param images_table:
     @param images_dir:
-    @return: - number of useable images, number of seedling images, number of images in the report but not in the folder
+    @return: -
+        usable : { report_id: (infest_level, [image_file_path])}
+        seedling_reports : {report id: [image_file_path}
+        number of missing images (in reports but not in image dir)
+        number of reportless images (in dir but not in reoprts)
+        number of total images in dir
+
+
     '''
     reports_dic = {}
     seedlings_dic = {}
 
+    # creates dictionary for reports (one for usable  and on for seedlings)
     for i in range(1, len(reports_df)):
         report_id = fix_id(fix_id(reports_df[0][i]))
         if reports_df[9][i] == 'Seedling':
@@ -52,6 +59,7 @@ def process_data(reports_df, images_df, images_dir):
     num_missing_image_files = 0
     total_images = 0
 
+    # assigns image files to their respective report in the dictionaries
     for i in range(1, len(images_df)):
         measurement_id = fix_id(images_df[0][i])
         image_file_path = make_actual_file_path(images_df[1][i], images_dir)
@@ -67,7 +75,7 @@ def process_data(reports_df, images_df, images_dir):
             num_images_not_in_reports += 1
         total_images += 1
 
-    return (seedlings_dic, reports_dic,
+    return (reports_dic, seedlings_dic,
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
@@ -81,14 +89,17 @@ def generate_batch(batch_size, seed=0):
 
 
 class FawDataset(torch.utils.data.Dataset):
-    def __init__(self,usealbe_reports, transform = None ):
-        self.reports = useable_reports
+    def __init__(self, usable_reports, transform=None):
+        self.reports = usable_reports
 
     def __getitem__(self, item):
-        # TODO ge item should somehow return all the images of a specific report
+        # TODO get item should somehow return all the images of a specific report
         pass
+
     def __len__(self):
         len(self.reports.items())
+
+#TODO add Dataloader
 
 # %%
 '''
@@ -106,7 +117,5 @@ images_df = pd.read_excel(images_file, header=None)
 
 USB_PATH = r"D:\2019_clean2"
 
-useable_reports, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
-    reports_df, images_df,USB_PATH)
-
-
+usable_reports, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
+    reports_df, images_df, USB_PATH)
