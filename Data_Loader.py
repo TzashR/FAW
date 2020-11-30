@@ -2,7 +2,9 @@ import os
 
 import pandas as pd
 import torch
-
+from skimage import io, transform
+import cv2
+import numpy as np
 
 def fix_id(id, i=-1):
     # check_id(i, id)
@@ -14,7 +16,6 @@ def check_id(i, id):
     id1 = (id // 100) * 100
     # print(id1)
     assert id == id1 or (id - 4) == id1 or (id - 8) == id1 or (id - 96) == id1 or (id - 92) == id1
-
 
 def make_actual_file_path(measurement_path, root_folder):
     '''
@@ -93,18 +94,22 @@ def generate_batch(batch_size, seed=0):
     '''
 
 
-class FawDataset(torch.utils.data.Dataset):
-    def __init__(self, usable_reports,images_df, transform=None):
-        self.reports = usable_reports
-        self.images_df = images_df
+def faw_transform(image, wanted_dims):
+    image_array=np.array(image)
 
+class FawDataset(torch.utils.data.Dataset):
+    def __init__(self, usable_reports,image_dim, transform=None):
+        self.reports = usable_reports
+        self.image_dim = image_dim
 
     def __getitem__(self, index):
-        im_path = ma
+        im_path = self.reports[index]
+        image = io.imread(im_path)
         pass
 
     def __len__(self):
         len(self.reports.items())
+
 
 #TODO add Dataloader
 #TODO calculate 4th channel
@@ -127,3 +132,42 @@ USB_PATH = r"D:\2019_clean2"
 
 usable_reports_dic, usable_reports_lst, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
     reports_df, images_df, USB_PATH)
+
+
+
+#%%
+image = cv2.imread(usable_reports_lst[0])
+image_arr = np.array(image)
+zeros_arr = np.zeros((image_arr.shape[0],image_arr.shape[1],1))
+for i in range(image_arr.shape[0]):
+    for j in range(image_arr.shape[1]):
+        r = image_arr[i,j,0]
+        g = image_arr[i,j,1]
+        zeros_arr[i,j,0]=(int(r)+int(g))/2
+
+
+#TODO update calc based on what Opher says.
+def index_calc(r,g):
+    '''
+
+    @param r: red value from pixel
+    @param g: green value from pixel
+    @return: index calc
+    '''
+    return 1
+
+def add_rg_channel(image_arr):
+    '''
+
+    @param image_arr: a np.array of an image
+    @return: the image with an extra channel computed by:...
+    '''
+    calc_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
+    for i in range(image_arr.shape[0]):
+        for j in range(image_arr.shape[1]):
+            r = int(image_arr[i, j, 0])
+            g = int(image_arr[i, j, 1])
+            zeros_arr[i, j, 0] = index_calc(r,g)
+
+
+
