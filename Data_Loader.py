@@ -232,3 +232,4 @@ sampler = faw_batch_sampler(batches)
 ds = FawDataset(usable_reports_lst,index_to_label,(512,512,4),faw_transform)
 
 dl =DataLoader(ds,batch_sampler=sampler)
+print("hello")
