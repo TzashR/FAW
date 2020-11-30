@@ -9,15 +9,14 @@ class FAW_Net(Module):
         super(FAW_Net, self).__init__()
 
 #TODO figure out how many output channels (filters?),stride, padding
-        self.cnn1 =  Conv2d(in_channels=4,out_channels=128, kernel_size=5,stride = 2),
+        self.cnn1 =  Conv2d(in_channels=4,out_channels=128, kernel_size=5,stride = 1),
 
 
 
-        self.cnn2 = Conv2d(in_channels=3, out_channels=128, kernel_size=5, stride=2),
+        self.cnn2 = Conv2d(in_channels=3, out_channels=128, kernel_size=5, stride=1),
         self.dropout = Dropout(0.5)
         self.fc1 = Linear(128,32)
-        self.fc2= Linear(32,8)
-        self.fc3 = Linear(8,1)
+        self.fc3 = Linear(32,1)
 
         def forward(self, x):
             x = self.cnn1(x)

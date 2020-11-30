@@ -29,6 +29,7 @@ def make_actual_file_path(measurement_path, root_folder):
     return actual_path
 
 
+#TODO I need to get the index for each image
 def process_data(reports_df, images_df, images_dir):
     '''
 
@@ -58,6 +59,8 @@ def process_data(reports_df, images_df, images_dir):
     num_images_not_in_reports = 0
     num_missing_image_files = 0
     total_images = 0
+    usable_index = 0
+    usable_reports_lst = []
 
     # assigns image files to their respective report in the dictionaries
     for i in range(1, len(images_df)):
@@ -68,14 +71,16 @@ def process_data(reports_df, images_df, images_dir):
             num_missing_image_files += 1
             continue
         if measurement_id in reports_dic:
-            reports_dic[measurement_id]['images'].append(image_file_path)
+            usable_reports_lst.append(image_file_path)
+            reports_dic[measurement_id]['images'].append((image_file_path,usable_index))
+            usable_index+=1
         elif measurement_id in seedlings_dic:
             seedlings_dic[measurement_id].append(image_file_path)
         else:
             num_images_not_in_reports += 1
         total_images += 1
 
-    return (reports_dic, seedlings_dic,
+    return (reports_dic,usable_reports_lst, seedlings_dic,
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
@@ -89,17 +94,20 @@ def generate_batch(batch_size, seed=0):
 
 
 class FawDataset(torch.utils.data.Dataset):
-    def __init__(self, usable_reports, transform=None):
+    def __init__(self, usable_reports,images_df, transform=None):
         self.reports = usable_reports
+        self.images_df = images_df
 
-    def __getitem__(self, item):
-        # TODO get item should somehow return all the images of a specific report
+
+    def __getitem__(self, index):
+        im_path = ma
         pass
 
     def __len__(self):
         len(self.reports.items())
 
 #TODO add Dataloader
+#TODO calculate 4th channel
 
 # %%
 '''
@@ -117,5 +125,5 @@ images_df = pd.read_excel(images_file, header=None)
 
 USB_PATH = r"D:\2019_clean2"
 
-usable_reports, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
+usable_reports_dic, usable_reports_lst, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
     reports_df, images_df, USB_PATH)
