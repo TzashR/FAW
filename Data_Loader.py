@@ -1,10 +1,10 @@
 import os
 
-import pandas as pd
-import torch
-from skimage import io, transform
 import cv2
 import numpy as np
+import pandas as pd
+import torch
+
 
 def fix_id(id, i=-1):
     # check_id(i, id)
@@ -16,6 +16,7 @@ def check_id(i, id):
     id1 = (id // 100) * 100
     # print(id1)
     assert id == id1 or (id - 4) == id1 or (id - 8) == id1 or (id - 96) == id1 or (id - 92) == id1
+
 
 def make_actual_file_path(measurement_path, root_folder):
     '''
@@ -30,7 +31,7 @@ def make_actual_file_path(measurement_path, root_folder):
     return actual_path
 
 
-#TODO I need to get the index for each image
+# TODO I need to get the index for each image
 def process_data(reports_df, images_df, images_dir):
     '''
 
@@ -73,15 +74,15 @@ def process_data(reports_df, images_df, images_dir):
             continue
         if measurement_id in reports_dic:
             usable_reports_lst.append(image_file_path)
-            reports_dic[measurement_id]['images'].append((image_file_path,usable_index))
-            usable_index+=1
+            reports_dic[measurement_id]['images'].append((image_file_path, usable_index))
+            usable_index += 1
         elif measurement_id in seedlings_dic:
             seedlings_dic[measurement_id].append(image_file_path)
         else:
             num_images_not_in_reports += 1
         total_images += 1
 
-    return (reports_dic,usable_reports_lst, seedlings_dic,
+    return (reports_dic, usable_reports_lst, seedlings_dic,
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
@@ -95,24 +96,30 @@ def generate_batch(batch_size, seed=0):
 
 
 def faw_transform(image, wanted_dims):
-    image_array=np.array(image)
+    image_array = np.array(image)
+
 
 class FawDataset(torch.utils.data.Dataset):
-    def __init__(self, usable_reports,image_dim, transform=None):
-        self.reports = usable_reports
+    def __init__(self, usable_reports, image_dim, transform=None):
+        self.images = usable_reports
         self.image_dim = image_dim
+        if (transform == faw_transform):
+            self.transform = lambda image_arr: faw_transform(image_arr, image_dim[0], image_dim[1])
+        elif transform is not None:
+            self.transform = transform
 
     def __getitem__(self, index):
-        im_path = self.reports[index]
-        image = io.imread(im_path)
+        im_path = self.images[index]
+        image = cv2.imread(im_path)
+
         pass
 
     def __len__(self):
         len(self.reports.items())
 
 
-#TODO add Dataloader
-#TODO calculate 4th channel
+# TODO add Dataloader
+# TODO calculate 4th channel
 
 # %%
 '''
@@ -133,21 +140,19 @@ USB_PATH = r"D:\2019_clean2"
 usable_reports_dic, usable_reports_lst, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
     reports_df, images_df, USB_PATH)
 
-
-
-#%%
+# %%
 image = cv2.imread(usable_reports_lst[0])
 image_arr = np.array(image)
-zeros_arr = np.zeros((image_arr.shape[0],image_arr.shape[1],1))
+zeros_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
 for i in range(image_arr.shape[0]):
     for j in range(image_arr.shape[1]):
-        r = image_arr[i,j,0]
-        g = image_arr[i,j,1]
-        zeros_arr[i,j,0]=(int(r)+int(g))/2
+        r = image_arr[i, j, 0]
+        g = image_arr[i, j, 1]
+        zeros_arr[i, j, 0] = (int(r) + int(g)) / 2
 
 
-#TODO update calc based on what Opher says.
-def index_calc(r,g):
+# TODO update calc based on what Opher says.
+def index_calc(r, g):
     '''
 
     @param r: red value from pixel
@@ -156,10 +161,11 @@ def index_calc(r,g):
     '''
     return 1
 
+
 def add_rg_channel(image_arr):
     '''
 
-    @param image_arr: a np.array of an image
+    @param image_arr: np.array of an image
     @return: the image with an extra channel computed by:...
     '''
     calc_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
@@ -167,7 +173,21 @@ def add_rg_channel(image_arr):
         for j in range(image_arr.shape[1]):
             r = int(image_arr[i, j, 0])
             g = int(image_arr[i, j, 1])
-            zeros_arr[i, j, 0] = index_calc(r,g)
+            calc_arr[i, j, 0] = index_calc(r, g)
+    return np.concatenate((image_arr, calc_arr), axis=2)
 
 
+def resize_image(image_arr, dim1, dim2):
+    img = image_arr / 255.0
+    if img.shape[0] < img.shape[1]:  # height first
+        img = np.transpose(img, (1, 0, 2))
+    img = cv2.resize(img, (dim1, dim2))
+    return img
 
+
+def faw_transform(img, dim1, dim2):
+    new_img = resize_image(img, dim1, dim2)
+    new_img = np.array(new_img)
+    new_img = add_rg_channel(new_img)
+
+    return new_img
