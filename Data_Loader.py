@@ -1,9 +1,10 @@
 import os
-
+import random
 import cv2
 import numpy as np
 import pandas as pd
 import torch
+from matplotlib import pyplot as plt
 
 
 def fix_id(id, i=-1):
@@ -86,40 +87,118 @@ def process_data(reports_df, images_df, images_dir):
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
-# %%
-def generate_batch(batch_size, seed=0):
+# TODO update calc based on what Opher says.
+def GRVI_calc(r, g):
     '''
-    @param batch_size:
-    @param seed:
-    @return:
+    calculates GRVI index
+    https://www.researchgate.net/publication/47426815_Applicability_of_Green-Red_Vegetation_Index_for_Remote_Sensing_of_Vegetation_Phenology
+
+    '''
+    if (g + r) == 0: return 0
+    return (g - r) / (g + r)
+
+
+def add_GRVI_channel(image_arr):
     '''
 
+    @param image_arr: np.array of an image
+    @return: the image with an extra channel computed by (green-red)/(green+red)
+    '''
+    calc_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
+    for i in range(image_arr.shape[0]):
+        for j in range(image_arr.shape[1]):
+            r = image_arr[i, j, 0]
+            g = image_arr[i, j, 1]
+            calc_arr[i, j, 0] = GRVI_calc(r, g)
+    return np.concatenate((image_arr, calc_arr), axis=2)
 
-def faw_transform(image, wanted_dims):
-    image_array = np.array(image)
 
+def resize_image(image_arr, dim1, dim2):
+    img = image_arr / 255.0
+    if img.shape[0] < img.shape[1]:  # height first
+        img = np.transpose(img, (1, 0, 2))
+    img = cv2.resize(img, (dim1, dim2))
+    return img
+
+
+def faw_transform(img, dim1, dim2):
+    new_img = resize_image(img, dim1, dim2)
+    new_img = np.array(new_img)
+    new_img = add_GRVI_channel(new_img)
+
+    return new_img
 
 class FawDataset(torch.utils.data.Dataset):
-    def __init__(self, usable_reports, image_dim, transform=None):
+    def __init__(self, usable_reports, image_dim, transform=(lambda img: img)):
         self.images = usable_reports
         self.image_dim = image_dim
         if (transform == faw_transform):
-            self.transform = lambda image_arr: faw_transform(image_arr, image_dim[0], image_dim[1])
-        elif transform is not None:
+            self.transform = lambda img: faw_transform(img, image_dim[0], image_dim[1])
+        else:
             self.transform = transform
 
     def __getitem__(self, index):
         im_path = self.images[index]
-        image = cv2.imread(im_path)
-
-        pass
+        img = cv2.imread(im_path)
+        return self.transform(img)
 
     def __len__(self):
         len(self.reports.items())
 
 
-# TODO add Dataloader
-# TODO calculate 4th channel
+
+def make_batches(batch_size,reports_dic, min_images = 5, seed = 0):
+    #list of all reports with at least min_images images
+    usable_reports = list(filter(lambda report: len(report[1]['images']) >= min_images, reports_dic.items()))
+
+
+    sizes_arr = [len(report[1]['images']) for report in usable_reports]
+    batches_sizes = []
+    used_set= set()
+    used_sizes_sum = 0
+    while used_sizes_sum<sum(sizes_arr)-max(sizes_arr):
+        current_batch = []
+        for i in range(len(sizes_arr)):
+            if not (i in used_set):
+                current_batch.append(sizes_arr[i])
+                used_set.add(i)
+                used_sizes_sum += sizes_arr[i]
+                if sum(current_batch)>batch_size: break
+        batches_sizes.append(current_batch)
+
+    #creates a dictionary of {size: all reports with this amount of images}
+    sizes_dic = {}
+    for report in usable_reports:
+        size = len(report[1]['images'])
+        if size in sizes_dic:
+            sizes_dic[size].append(report[0])
+        else:
+            sizes_dic[size] = [report[0]]
+
+    #chooses random of ids of wantes sizes for batches
+    id_batches = []
+    random.seed(seed)
+    for i in range(len(batches_sizes)):
+        id_batches.append([])
+        for size in batches_sizes[i]:
+            reports_of_size = sizes_dic[size]
+            random_index = random.randrange(len(reports_of_size))
+            id_batches[i].append(reports_of_size.pop(random_index))
+
+    #translates the batches ids to actual image indices
+    batches = []
+    for i in range(len(id_batches)):
+        batches.append([])
+        for report_id in id_batches[i]:
+            image_indices = [img_loc[1] for img_loc in reports_dic[report_id]['images']]
+            batches[i]+= image_indices
+    return batches
+
+
+
+def faw_batch_sampler(batch_size,reports_dic, min_images = 5, seed = 0):
+    pass
+
 
 # %%
 '''
@@ -141,53 +220,7 @@ usable_reports_dic, usable_reports_lst, seedling_reports, missing_image_files, r
     reports_df, images_df, USB_PATH)
 
 # %%
-image = cv2.imread(usable_reports_lst[0])
-image_arr = np.array(image)
-zeros_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
-for i in range(image_arr.shape[0]):
-    for j in range(image_arr.shape[1]):
-        r = image_arr[i, j, 0]
-        g = image_arr[i, j, 1]
-        zeros_arr[i, j, 0] = (int(r) + int(g)) / 2
+ds = FawDataset(usable_reports_lst,(512,512,4),faw_transform)
 
-
-# TODO update calc based on what Opher says.
-def index_calc(r, g):
-    '''
-
-    @param r: red value from pixel
-    @param g: green value from pixel
-    @return: index calc
-    '''
-    return 1
-
-
-def add_rg_channel(image_arr):
-    '''
-
-    @param image_arr: np.array of an image
-    @return: the image with an extra channel computed by:...
-    '''
-    calc_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
-    for i in range(image_arr.shape[0]):
-        for j in range(image_arr.shape[1]):
-            r = int(image_arr[i, j, 0])
-            g = int(image_arr[i, j, 1])
-            calc_arr[i, j, 0] = index_calc(r, g)
-    return np.concatenate((image_arr, calc_arr), axis=2)
-
-
-def resize_image(image_arr, dim1, dim2):
-    img = image_arr / 255.0
-    if img.shape[0] < img.shape[1]:  # height first
-        img = np.transpose(img, (1, 0, 2))
-    img = cv2.resize(img, (dim1, dim2))
-    return img
-
-
-def faw_transform(img, dim1, dim2):
-    new_img = resize_image(img, dim1, dim2)
-    new_img = np.array(new_img)
-    new_img = add_rg_channel(new_img)
-
-    return new_img
+x = make_batches(20,usable_reports_dic)
+print(x)
