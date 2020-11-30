@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 from matplotlib import pyplot as plt
-
+from torch.utils.data import DataLoader
 
 def fix_id(id, i=-1):
     # check_id(i, id)
@@ -64,6 +64,7 @@ def process_data(reports_df, images_df, images_dir):
     total_images = 0
     usable_index = 0
     usable_reports_lst = []
+    index_to_label = {}
 
     # assigns image files to their respective report in the dictionaries
     for i in range(1, len(images_df)):
@@ -76,6 +77,7 @@ def process_data(reports_df, images_df, images_dir):
         if measurement_id in reports_dic:
             usable_reports_lst.append(image_file_path)
             reports_dic[measurement_id]['images'].append((image_file_path, usable_index))
+            index_to_label[usable_index] = reports_dic[measurement_id]['infest_level']
             usable_index += 1
         elif measurement_id in seedlings_dic:
             seedlings_dic[measurement_id].append(image_file_path)
@@ -83,7 +85,7 @@ def process_data(reports_df, images_df, images_dir):
             num_images_not_in_reports += 1
         total_images += 1
 
-    return (reports_dic, usable_reports_lst, seedlings_dic,
+    return (reports_dic, usable_reports_lst,index_to_label, seedlings_dic,
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
@@ -129,18 +131,21 @@ def faw_transform(img, dim1, dim2):
     return new_img
 
 class FawDataset(torch.utils.data.Dataset):
-    def __init__(self, usable_reports, image_dim, transform=(lambda img: img)):
-        self.images = usable_reports
+    def __init__(self, usable_reports,labels, image_dim, transform=(lambda img: img)):
         self.image_dim = image_dim
         if (transform == faw_transform):
             self.transform = lambda img: faw_transform(img, image_dim[0], image_dim[1])
         else:
             self.transform = transform
 
+        self.images = usable_reports
+        self.labels = labels
+
     def __getitem__(self, index):
         im_path = self.images[index]
         img = cv2.imread(im_path)
-        return self.transform(img)
+        label = self.labels[index]
+        return img,label
 
     def __len__(self):
         len(self.reports.items())
@@ -196,8 +201,9 @@ def make_batches(batch_size,reports_dic, min_images = 5, seed = 0):
 
 
 
-def faw_batch_sampler(batch_size,reports_dic, min_images = 5, seed = 0):
-    pass
+def faw_batch_sampler(batches):
+    for i in range(len(batches)):
+        yield batches[i]
 
 
 # %%
@@ -216,11 +222,13 @@ images_df = pd.read_excel(images_file, header=None)
 
 USB_PATH = r"D:\2019_clean2"
 
-usable_reports_dic, usable_reports_lst, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
+usable_reports_dic, usable_reports_lst,index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
     reports_df, images_df, USB_PATH)
 
 # %%
-ds = FawDataset(usable_reports_lst,(512,512,4),faw_transform)
 
-x = make_batches(20,usable_reports_dic)
-print(x)
+batches = make_batches(20,usable_reports_dic)
+sampler = faw_batch_sampler(batches)
+ds = FawDataset(usable_reports_lst,index_to_label,(512,512,4),faw_transform)
+
+dl =DataLoader(ds,batch_sampler=sampler)
