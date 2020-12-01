@@ -90,35 +90,11 @@ def process_data(reports_df, images_df, images_dir):
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
-# TODO update calc based on what Opher says.
-def GRVI_calc(r, g):
-    '''
-    calculates GRVI index
-    https://www.researchgate.net/publication/47426815_Applicability_of_Green-Red_Vegetation_Index_for_Remote_Sensing_of_Vegetation_Phenology
-
-    '''
-    if (g + r) == 0: return 0
-    return (g - r) / (g + r)
-
-
-def add_GRVI_channel(image_arr):
-    '''
-
-    @param image_arr: np.array of an image
-    @return: the image with an extra channel computed by (green-red)/(green+red)
-    '''
-    calc_arr = np.zeros((image_arr.shape[0], image_arr.shape[1], 1))
-    for i in range(image_arr.shape[0]):
-        for j in range(image_arr.shape[1]):
-            r = image_arr[i, j, 0]
-            g = image_arr[i, j, 1]
-            calc_arr[i, j, 0] = GRVI_calc(r, g)
-    return np.concatenate((image_arr, calc_arr), axis=2)
-
 
 def faw_transform(img):
     new_img = np.zeros((img.shape[0], img.shape[1], 4), dtype=float)
     new_img[:, :, :3] = img / 255.0
+    #adds GRVI channel. (r+g)/(r-g)
     new_img[:, :, 3] = (new_img[:,:, 1] - new_img[:,:, 0]) / (new_img[:,:, 0] + new_img[:,:, 1] + .00001)
     if new_img.shape[0] < new_img.shape[1]:  # height first
         new_img = np.transpose(new_img, (1, 0, 2))
