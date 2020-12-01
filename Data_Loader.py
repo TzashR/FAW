@@ -1,6 +1,5 @@
 import os
 import random
-
 import cv2
 import numpy as np
 import pandas as pd
@@ -115,7 +114,6 @@ class FawDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         im_path = self.images[index]
         img = cv2.imread(im_path)
-        img = cv2.resize(img, (128, 128))
         label = self.labels[index]
         img = self.transform(np.array(img))
         return img, label

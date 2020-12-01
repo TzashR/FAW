@@ -6,7 +6,6 @@ from torchsummary import summary
 class FawNet(Module):
     def __init__(self):
         super(FawNet, self).__init__()
-        print("i'm here")
         self.cnn_layers = Sequential(
             Conv2d(in_channels=4, out_channels=32, kernel_size=5, stride=1),
             ReLU(inplace=True),
@@ -15,7 +14,7 @@ class FawNet(Module):
             ReLU(inplace=True),
             Linear(39,14352),
             ReLU(inplace=True),
-            BatchNorm2d(32),
+            BatchNorm2d(16),
             Dropout(),
             Linear(32, 32),
             ReLU(),
