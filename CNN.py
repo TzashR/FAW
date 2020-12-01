@@ -1,39 +1,33 @@
-import torch
-import Data_Loader
-from torch.autograd import Variable
-from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
-from torch.optim import Adam, SGD
-
-class FAW_Net(Module):
-    def __Init__(self):
-        super(FAW_Net, self).__init__()
-
-#TODO figure out how many output channels (filters?),stride, padding
-        self.cnn1 =  Conv2d(in_channels=4,out_channels=128, kernel_size=5,stride = 1),
+# %%
+from torch.nn import Linear, ReLU, Conv2d, MaxPool2d, Module, BatchNorm2d, Dropout, Sequential
+from torchsummary import summary
 
 
+class FawNet(Module):
+    def __init__(self):
+        super(FawNet, self).__init__()
+        print("i'm here")
+        self.cnn_layers = Sequential(
+            Conv2d(in_channels=4, out_channels=32, kernel_size=5, stride=1),
+            ReLU(inplace=True),
+            MaxPool2d(kernel_size=2),
+            Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1),
+            ReLU(inplace=True),
+            Linear(32, 32),
+            ReLU(inplace=True),
+            BatchNorm2d(32),
+            Dropout(),
+            Linear(32, 32),
+            ReLU(),
+            BatchNorm2d(32),
+            Dropout(),
+            Linear(32, 1),
+        )
 
-        self.cnn2 = Conv2d(in_channels=3, out_channels=128, kernel_size=5, stride=1),
-        self.dropout = Dropout(0.5)
-        self.fc1 = Linear(128,32)
-        self.fc3 = Linear(32,1)
-
-        def forward(self, x):
-            x = self.cnn1(x)
-            ReLU(x)
-            MaxPool2d(x)
-            self.cnn2(x)
-            ReLU(x)
-            MaxPool2d(x)
-            self.fc1(x)
-            ReLU(x)
-            BatchNorm2d(x)
-            self.dropout(x)
-            self.fc2(x)
-            ReLU(x)
-            BatchNorm2d(x)
-            self.dropout(x)
-            self.fc3(x)
-            return Softmax(x)
+    def forward(self, x):
+        x = self.cnn_layers(x)
+        return x
 
 
+net = FawNet()
+print(net)
