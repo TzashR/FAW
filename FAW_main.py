@@ -1,10 +1,10 @@
+#%%
 import pandas as pd
 import torch.optim
 from torch.utils.data import DataLoader
 
 from CNN import FawNet
 from Data_Loader import process_data, faw_batch_sampler, make_batches, FawDataset, faw_transform
-
 
 def main():
     # user defined variables:
@@ -38,7 +38,7 @@ def main():
     train_dl = DataLoader(ds, batch_sampler=train_sampler)
     test_dl = DataLoader(ds, batch_sampler=test_sampler)
 
-    # %%
+
     # the cnn
     model = FawNet()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -47,9 +47,9 @@ def main():
     for epoch in range(2):
         runing_loss = 0.0
         for i, data in enumerate(train_dl, 0):
-            inputs, labels =  data
+            inputs, labels = data
             optimizer.zero_grad()
-            outputs = model(inputs)
+            outputs = model(inputs.float())
             loss = criterion(outputs,labels)
             loss.backward()
             optimizer.step()

@@ -10,10 +10,10 @@ class FawNet(Module):
         self.cnn_layers = Sequential(
             Conv2d(in_channels=4, out_channels=32, kernel_size=5, stride=1),
             ReLU(inplace=True),
-            MaxPool2d(kernel_size=2),
-            Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1),
+            MaxPool2d(kernel_size=3),
+            Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1),
             ReLU(inplace=True),
-            Linear(32, 32),
+            Linear(39,14352),
             ReLU(inplace=True),
             BatchNorm2d(32),
             Dropout(),

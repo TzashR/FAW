@@ -1,10 +1,10 @@
 import os
 import random
+
 import cv2
 import numpy as np
 import pandas as pd
 import torch
-from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 
@@ -90,16 +90,15 @@ def process_data(reports_df, images_df, images_dir):
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
-
 def faw_transform(img):
-    new_img = np.zeros((img.shape[0], img.shape[1], 4), dtype=float)
+    new_img = np.zeros((img.shape[0], img.shape[1], 4))
     new_img[:, :, :3] = img / 255.0
-    #adds GRVI channel. (r+g)/(r-g)
-    new_img[:, :, 3] = (new_img[:,:, 1] - new_img[:,:, 0]) / (new_img[:,:, 0] + new_img[:,:, 1] + .00001)
+    # adds GRVI channel. (r+g)/(r-g)
+    new_img[:, :, 3] = (new_img[:, :, 1] - new_img[:, :, 0]) / (new_img[:, :, 0] + new_img[:, :, 1] + .00001)
     if new_img.shape[0] < new_img.shape[1]:  # height first
         new_img = np.transpose(new_img, (1, 0, 2))
-    new_img=np.transpose(new_img,(2,0,1))
-    assert (new_img.shape == (4,1600,960))
+    new_img = np.transpose(new_img, (2, 0, 1))
+    # assert (new_img.shape == (4,1600,960))
     return new_img
 
 
@@ -116,6 +115,7 @@ class FawDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         im_path = self.images[index]
         img = cv2.imread(im_path)
+        img = cv2.resize(img, (128, 128))
         label = self.labels[index]
         img = self.transform(np.array(img))
         return img, label
