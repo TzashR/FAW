@@ -16,7 +16,7 @@ def main():
     val_set_size = 1 - test_set_size - train_set_size
     batch_size = 20
 
-    val_set_size = 1 - train_set_size
+    val_set_size = 1 - train_set_size-test_set_size
     assert (1 > test_set_size > 0 and 1 > train_set_size > 0 and train_set_size + test_set_size + val_set_size == 1)
 
     ##get and process the data
@@ -41,10 +41,28 @@ def main():
     # %%
     # the cnn
     model = FawNet()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.2)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = torch.nn.MSELoss()
 
+    for epoch in range(2):
+        runing_loss = 0.0
+        for i, data in enumerate(train_dl, 0):
+            inputs, labels =  data
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs,labels)
+            loss.backward()
+            optimizer.step()
 
+            running_loss += loss.item()
+            if i % 100 == 99:  # print every 100 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                      (epoch + 1, i + 1, running_loss / 2000))
+                running_loss = 0.0
+    print("finished training!")
 
 if __name__ == '__main__':
     main()
+
+
+

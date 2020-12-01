@@ -28,6 +28,3 @@ class FawNet(Module):
         x = self.cnn_layers(x)
         return x
 
-
-net = FawNet()
-print(net)
