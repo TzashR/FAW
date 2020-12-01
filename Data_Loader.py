@@ -7,6 +7,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
+
 def fix_id(id, i=-1):
     # check_id(i, id)
     return (id + 50) // 100 * 100
@@ -85,7 +86,7 @@ def process_data(reports_df, images_df, images_dir):
             num_images_not_in_reports += 1
         total_images += 1
 
-    return (reports_dic, usable_reports_lst,index_to_label, seedlings_dic,
+    return (reports_dic, usable_reports_lst, index_to_label, seedlings_dic,
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
@@ -115,63 +116,56 @@ def add_GRVI_channel(image_arr):
     return np.concatenate((image_arr, calc_arr), axis=2)
 
 
-def resize_image(image_arr, dim1, dim2):
-    img = image_arr / 255.0
-    if img.shape[0] < img.shape[1]:  # height first
-        img = np.transpose(img, (1, 0, 2))
-    img = cv2.resize(img, (dim1, dim2))
-    return img
-
-
-def faw_transform(img, dim1, dim2):
-    new_img = resize_image(img, dim1, dim2)
-    new_img = np.array(new_img)
-    new_img = add_GRVI_channel(new_img)
-
+def faw_transform(img):
+    new_img = np.zeros((img.shape[0], img.shape[1], 4), dtype=float)
+    new_img[:, :, :3] = img / 255.0
+    new_img[:, :, 3] = (new_img[:,:, 1] - new_img[:,:, 0]) / (new_img[:,:, 0] + new_img[:,:, 1] + .00001)
+    if new_img.shape[0] < new_img.shape[1]:  # height first
+        new_img = np.transpose(new_img, (1, 0, 2))
+    assert (new_img.shape == (1600, 960, 4))
     return new_img
 
+
 class FawDataset(torch.utils.data.Dataset):
-    def __init__(self, usable_reports,labels, image_dim, transform=(lambda img: img)):
-        self.image_dim = image_dim
+    def __init__(self, images, labels, transform=(lambda img: img)):
         if (transform == faw_transform):
-            self.transform = lambda img: faw_transform(img, image_dim[0], image_dim[1])
+            self.transform = lambda img: faw_transform(img)
         else:
             self.transform = transform
 
-        self.images = usable_reports
+        self.images = images
         self.labels = labels
 
     def __getitem__(self, index):
         im_path = self.images[index]
         img = cv2.imread(im_path)
         label = self.labels[index]
-        return img,label
+        img = self.transform(np.array(img))
+        return img, label
 
     def __len__(self):
-        len(self.reports.items())
+        len(self.images.items())
 
 
-
-def make_batches(batch_size,reports_dic, min_images = 5, seed = 0):
-    #list of all reports with at least min_images images
+def make_batches(batch_size, reports_dic, min_images=5, seed=0):
+    # list of all reports with at least min_images images
     usable_reports = list(filter(lambda report: len(report[1]['images']) >= min_images, reports_dic.items()))
-
 
     sizes_arr = [len(report[1]['images']) for report in usable_reports]
     batches_sizes = []
-    used_set= set()
+    used_set = set()
     used_sizes_sum = 0
-    while used_sizes_sum<sum(sizes_arr)-max(sizes_arr):
+    while used_sizes_sum < sum(sizes_arr) - max(sizes_arr):
         current_batch = []
         for i in range(len(sizes_arr)):
             if not (i in used_set):
                 current_batch.append(sizes_arr[i])
                 used_set.add(i)
                 used_sizes_sum += sizes_arr[i]
-                if sum(current_batch)>batch_size: break
+                if sum(current_batch) > batch_size: break
         batches_sizes.append(current_batch)
 
-    #creates a dictionary of {size: all reports with this amount of images}
+    # creates a dictionary of {size: all reports with this amount of images}
     sizes_dic = {}
     for report in usable_reports:
         size = len(report[1]['images'])
@@ -180,7 +174,7 @@ def make_batches(batch_size,reports_dic, min_images = 5, seed = 0):
         else:
             sizes_dic[size] = [report[0]]
 
-    #chooses random of ids of wantes sizes for batches
+    # chooses random of ids of wantes sizes for batches
     id_batches = []
     random.seed(seed)
     for i in range(len(batches_sizes)):
@@ -190,15 +184,14 @@ def make_batches(batch_size,reports_dic, min_images = 5, seed = 0):
             random_index = random.randrange(len(reports_of_size))
             id_batches[i].append(reports_of_size.pop(random_index))
 
-    #translates the batches ids to actual image indices
+    # translates the batches ids to actual image indices
     batches = []
     for i in range(len(id_batches)):
         batches.append([])
         for report_id in id_batches[i]:
             image_indices = [img_loc[1] for img_loc in reports_dic[report_id]['images']]
-            batches[i]+= image_indices
+            batches[i] += image_indices
     return batches
-
 
 
 def faw_batch_sampler(batches):
@@ -207,29 +200,20 @@ def faw_batch_sampler(batches):
 
 
 # %%
-'''
-Data processing cell
-'''
+
 reports_file = "D:\Kenya IPM field reports.xls"
 images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
 reports_df = pd.read_excel(reports_file, header=None)
-id_infest_list = []
-n_rows = len(reports_df[0][:])
-
-id_infest_list = [(fix_id(i + 2, t[0]), t[1]) for i, t in enumerate(id_infest_list)]
-id_to_infest = dict(id_infest_list)
 images_df = pd.read_excel(images_file, header=None)
 
 USB_PATH = r"D:\2019_clean2"
 
-usable_reports_dic, usable_reports_lst,index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
+usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
     reports_df, images_df, USB_PATH)
 
-# %%
+ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
 
-batches = make_batches(20,usable_reports_dic)
+batches = make_batches(20, usable_reports_dic)
 sampler = faw_batch_sampler(batches)
-ds = FawDataset(usable_reports_lst,index_to_label,(512,512,4),faw_transform)
 
-dl =DataLoader(ds,batch_sampler=sampler)
-print("hello")
+dl = DataLoader(ds, batch_sampler=sampler)
