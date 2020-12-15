@@ -175,20 +175,21 @@ def faw_batch_sampler(batches):
 
 
 # %%
-
-reports_file = "D:\Kenya IPM field reports.xls"
-images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
-reports_df = pd.read_excel(reports_file, header=None)
-images_df = pd.read_excel(images_file, header=None)
-
-USB_PATH = r"D:\2019_clean2"
-
-usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
-    reports_df, images_df, USB_PATH)
-
-ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
-
-batches = make_batches(20, usable_reports_dic)
-sampler = faw_batch_sampler(batches)
-
-dl = DataLoader(ds, batch_sampler=sampler)
+###for testing
+#
+# reports_file = "D:\Kenya IPM field reports.xls"
+# images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
+# reports_df = pd.read_excel(reports_file, header=None)
+# images_df = pd.read_excel(images_file, header=None)
+#
+# USB_PATH = r"D:\2019_clean2"
+#
+# usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
+#     reports_df, images_df, USB_PATH)
+#
+# ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
+#
+# batches = make_batches(20, usable_reports_dic)
+# sampler = faw_batch_sampler(batches)
+#
+# dl = DataLoader(ds, batch_sampler=sampler)
