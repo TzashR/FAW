@@ -12,7 +12,7 @@ class FawNet(Module):
             MaxPool2d(kernel_size=3),
             Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1),
             ReLU(inplace=True),
-            Linear(39,14352),
+            Linear(316,195040),
             ReLU(inplace=True),
             BatchNorm2d(16),
             Dropout(),

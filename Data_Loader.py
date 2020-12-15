@@ -97,7 +97,7 @@ def faw_transform(img):
     if new_img.shape[0] < new_img.shape[1]:  # height first
         new_img = np.transpose(new_img, (1, 0, 2))
     new_img = np.transpose(new_img, (2, 0, 1))
-    # assert (new_img.shape == (4,1600,960))
+    assert (new_img.shape == (4,1600,960))
     return new_img
 
 
