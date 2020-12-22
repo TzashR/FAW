@@ -37,7 +37,7 @@ def main():
     train_set_size = 0.75  # how many (out of 1) should be in the training set.
     test_set_size = 0.25
     val_set_size = 1 - test_set_size - train_set_size
-    batch_size = 5
+    batch_size = 1
 
     assert (1 > test_set_size > 0 and 1 > train_set_size > 0 and train_set_size + test_set_size + val_set_size == 1)
 
@@ -61,7 +61,7 @@ def main():
     test_dl = DataLoader(ds, batch_sampler=test_sampler)
 
     # the cnn
-    model = FawNet()
+    model = FawNet().cuda()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = torch.nn.MSELoss()
 
@@ -69,15 +69,12 @@ def main():
         runing_loss = 0.0
         for i, data in enumerate(train_dl, 0):
             inputs, labels = data
-            inputs, labels = inputs, labels
-            print(f' inputs shape {inputs[0].shape}  inputs length {len(inputs)}')
-            print(get_n_params(model))
+            inputs, labels = inputs.cuda(), labels.cuda()
             optimizer.zero_grad()
             outputs = model(inputs.float())
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-
             running_loss += loss.item()
             if i ==1 :  # print every 100 mini-batches
                 print('[%d, %5d] loss: %.3f' %
@@ -85,6 +82,10 @@ def main():
                 running_loss = 0.0
                 break
     print("finished training!")
+
+
+if __name__ == '__main__':
+    main()
 
 def get_n_params(model):
     pp=0
@@ -94,7 +95,3 @@ def get_n_params(model):
             nn = nn*s
         pp += nn
     return pp
-
-if __name__ == '__main__':
-    main()
-
