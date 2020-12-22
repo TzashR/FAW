@@ -6,7 +6,6 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-
 def fix_id(id, i=-1):
     # check_id(i, id)
     return (id + 50) // 100 * 100
@@ -121,51 +120,25 @@ class FawDataset(torch.utils.data.Dataset):
     def __len__(self):
         len(self.images.items())
 
-
 def make_batches(batch_size, reports_dic, min_images=5, seed=0):
     # list of all reports with at least min_images images
     usable_reports = list(filter(lambda report: len(report[1]['images']) >= min_images, reports_dic.items()))
+    random.shuffle(usable_reports)
+    n = len(usable_reports)
+    num_of_batches,remainder = n//batch_size, n%batch_size
 
-    sizes_arr = [len(report[1]['images']) for report in usable_reports]
-    batches_sizes = []
-    used_set = set()
-    used_sizes_sum = 0
-    while used_sizes_sum < sum(sizes_arr) - max(sizes_arr):
-        current_batch = []
-        for i in range(len(sizes_arr)):
-            if not (i in used_set):
-                current_batch.append(sizes_arr[i])
-                used_set.add(i)
-                used_sizes_sum += sizes_arr[i]
-                if sum(current_batch) > batch_size: break
-        batches_sizes.append(current_batch)
+    #batches at this point are reports, we need to convert them to image indices
+    batch_reports = [usable_reports[i:i+batch_size] for i in range(num_of_batches)]
+    if remainder>0: batch_reports.append(usable_reports[-remainder:])
 
-    # creates a dictionary of {size: all reports with this amount of images}
-    sizes_dic = {}
-    for report in usable_reports:
-        size = len(report[1]['images'])
-        if size in sizes_dic:
-            sizes_dic[size].append(report[0])
-        else:
-            sizes_dic[size] = [report[0]]
-
-    # chooses random of ids of wantes sizes for batches
-    id_batches = []
-    random.seed(seed)
-    for i in range(len(batches_sizes)):
-        id_batches.append([])
-        for size in batches_sizes[i]:
-            reports_of_size = sizes_dic[size]
-            random_index = random.randrange(len(reports_of_size))
-            id_batches[i].append(reports_of_size.pop(random_index))
-
-    # translates the batches ids to actual image indices
     batches = []
-    for i in range(len(id_batches)):
-        batches.append([])
-        for report_id in id_batches[i]:
-            image_indices = [img_loc[1] for img_loc in reports_dic[report_id]['images']]
-            batches[i] += image_indices
+#converts all reports in batches to a list of image indices
+    for rep_batch in batch_reports:
+        batch_indices = []
+        for report in rep_batch:
+            for image_tuple in report[1]['images']: #image tuple contains path, index
+                batch_indices.append(image_tuple[1])
+        batches.append(batch_indices)
     return batches
 
 
@@ -174,8 +147,8 @@ def faw_batch_sampler(batches):
         yield batches[i]
 
 
-# %%
-###for testing
+# # %%
+# ##for testing
 #
 # reports_file = "D:\Kenya IPM field reports.xls"
 # images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
@@ -190,6 +163,7 @@ def faw_batch_sampler(batches):
 # ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
 #
 # batches = make_batches(20, usable_reports_dic)
+# batches2 = make_batches2(5, usable_reports_dic)
 # sampler = faw_batch_sampler(batches)
 #
 # dl = DataLoader(ds, batch_sampler=sampler)

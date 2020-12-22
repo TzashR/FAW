@@ -8,6 +8,19 @@ from Data_Loader import process_data, faw_batch_sampler, make_batches, FawDatase
 
 
 def main():
+
+### test if cuda is connected:
+    # print(f' cuda  current device {torch.cuda.current_device()}')
+    #
+    # print(f' cuda device{torch.cuda.device(0)}')
+    #
+    # print(f' device count {torch.cuda.device_count()}')
+    #
+    # print(f' device name {torch.cuda.get_device_name(0)}')
+    #
+    # print(f' is cuda available {torch.cuda.is_available()}')
+###
+
     # receiving user input
     parser = argparse.ArgumentParser()
     parser.add_argument("reports_file", help="File path to the reports table")
@@ -24,7 +37,7 @@ def main():
     train_set_size = 0.75  # how many (out of 1) should be in the training set.
     test_set_size = 0.25
     val_set_size = 1 - test_set_size - train_set_size
-    batch_size = 20
+    batch_size = 5
 
     assert (1 > test_set_size > 0 and 1 > train_set_size > 0 and train_set_size + test_set_size + val_set_size == 1)
 
@@ -56,6 +69,9 @@ def main():
         runing_loss = 0.0
         for i, data in enumerate(train_dl, 0):
             inputs, labels = data
+            inputs, labels = inputs, labels
+            print(f' inputs shape {inputs[0].shape}  inputs length {len(inputs)}')
+            print(get_n_params(model))
             optimizer.zero_grad()
             outputs = model(inputs.float())
             loss = criterion(outputs, labels)
@@ -70,6 +86,15 @@ def main():
                 break
     print("finished training!")
 
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
 
 if __name__ == '__main__':
     main()
+
