@@ -96,7 +96,7 @@ def faw_transform(img):
     if new_img.shape[0] < new_img.shape[1]:  # height first
         new_img = np.transpose(new_img, (1, 0, 2))
     new_img = np.transpose(new_img, (2, 0, 1))
-    assert (new_img.shape == (4,1600,960))
+    #assert (new_img.shape == (4,1600,960))
     return new_img
 
 
@@ -113,8 +113,11 @@ class FawDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         im_path = self.images[index]
         img = cv2.imread(im_path)
-        label = self.labels[index]
+        label = torch.FloatTensor(self.labels[index])
+        # img = cv2.resize(img, (512,512))
         img = self.transform(np.array(img))
+        img = torch.FloatTensor(img)
+
         return img, label
 
     def __len__(self):

@@ -26,12 +26,14 @@ def main():
     parser.add_argument("reports_file", help="File path to the reports table")
     parser.add_argument("images_table_file", help="File path to the image table")
     parser.add_argument("images_root_directory", help="path to images root directory")
+    parser.add_argument("--is_gpu", help="path to images root directory", type = bool, default=False)
 
     args = parser.parse_args()
 
     reports_file = args.reports_file
     images_file = args.images_table_file
     images_root_directory = args.images_root_directory
+    is_gpu = args.is_gpu
 
 
     train_set_size = 0.75  # how many (out of 1) should be in the training set.
@@ -61,17 +63,19 @@ def main():
     test_dl = DataLoader(ds, batch_sampler=test_sampler)
 
     # the cnn
-    model = FawNet().cuda()
+    model = FawNet()
+    if is_gpu: model = model.cuda()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = torch.nn.MSELoss()
+
 
     for epoch in range(2):
         runing_loss = 0.0
         for i, data in enumerate(train_dl, 0):
             inputs, labels = data
-            inputs, labels = inputs.cuda(), labels.cuda()
+            if is_gpu: inputs, labels = inputs.cuda(), labels.cuda()
             optimizer.zero_grad()
-            outputs = model(inputs.float())
+            outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -82,7 +86,17 @@ def main():
                 running_loss = 0.0
                 break
     print("finished training!")
+    torch.save(model.state_dict(),'faw_trained.pt')
 
+def get_n_params(model):
+    pp=0
+    for p in list(model.parameters()):
+        print(f'@@@@@@ {p.shape}')
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    return pp
 
 if __name__ == '__main__':
     main()
