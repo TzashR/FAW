@@ -70,7 +70,7 @@ def main():
 
 
     for epoch in range(2):
-        runing_loss = 0.0
+        running_loss = 0.0
         for i, data in enumerate(train_dl, 0):
             inputs, labels = data
             if is_gpu: inputs, labels = inputs.cuda(), labels.cuda()

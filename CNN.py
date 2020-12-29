@@ -22,10 +22,8 @@ class FawNet(Module):
         super(FawNet, self).__init__()
         self.cnn_layers = Sequential(
             Conv2d(in_channels=4, out_channels=32, kernel_size=5, stride=1),
-            PrintLayer('conv 1'),
             ReLU(inplace=True),
             MaxPool2d(kernel_size=3),
-            PrintLayer('maxpool 1'),
             Conv2d(in_channels=32, out_channels=16, kernel_size=3, stride=1),
             ReLU(inplace=True),
             MaxPool2d(kernel_size=5),
