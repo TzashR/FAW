@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from CNN import FawNet
 from Data_Loader import process_data, faw_batch_sampler, make_batches, FawDataset, faw_transform
-
+import pickle
 
 def main():
     ### test if cuda is connected:
@@ -28,6 +28,8 @@ def main():
     parser.add_argument("images_root_directory", help="path to images root directory")
     parser.add_argument("--is_gpu", help="path to images root directory", type=bool, default=False)
     parser.add_argument("-pb","--with_pbar", help="Should have progress bar", type=bool, default=False)
+    parser.add_argument("-bs","--bad_shapes", help="File with paths to bad images", default=None)
+
 
     args = parser.parse_args()
 
@@ -36,6 +38,12 @@ def main():
     images_root_directory = args.images_root_directory
     is_gpu = args.is_gpu
     with_pbar = args.with_pbar
+    bad_shape_images_path = args.bad_shapes
+
+    if bad_shape_images_path is not None:
+        with open(bad_shape_images_path, 'rb') as fp:
+            bad_shape_images = pickle.load(fp)
+    else: bad_shape_images = None
 
     train_set_size = 0.75  # how many (out of 1) should be in the training set.
     test_set_size = 0.25
@@ -49,8 +57,9 @@ def main():
     reports_df = pd.read_excel(reports_file, header=None)
     images_df = pd.read_excel(images_file, header=None)
 
-    usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
-        reports_df, images_df, images_root_directory)
+    usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images \
+        = process_data(
+        reports_df, images_df, images_root_directory, bad_shape_images)
 
     ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
 
@@ -61,9 +70,15 @@ def main():
     train_sampler = faw_batch_sampler(all_batches[:train_until_index])
     test_sampler = faw_batch_sampler(all_batches[train_until_index:])
 
+##save test indices in file to be used later
+    with open("test indices",'wb') as f:
+        pickle.dump(all_batches[train_until_index:], f)
+
+    with open("train indices",'wb') as f:
+        pickle.dump(all_batches[:train_until_index], f)
+
     train_dl = DataLoader(ds, batch_sampler=train_sampler)
     test_dl = DataLoader(ds, batch_sampler=test_sampler)
-
     # the cnn
     model = FawNet()
     if is_gpu: model = model.cuda()

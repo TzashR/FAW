@@ -32,12 +32,13 @@ def make_actual_file_path(measurement_path, root_folder):
 
 
 # TODO I need to get the index for each image
-def process_data(reports_df, images_df, images_dir):
+def process_data(reports_df, images_df, images_dir, bad_shaped_images = None):
     '''
 
     @param reports_table:
     @param images_table:
     @param images_dir:
+    @bad_shaped_images: a set of file paths to images with bad shape. They will be ignored
     @return: -
         usable : { report_id: (infest_level, [image_file_path])}
         seedling_reports : {report id: [image_file_path}
@@ -73,6 +74,8 @@ def process_data(reports_df, images_df, images_dir):
         if not os.path.isfile(image_file_path):
             num_missing_image_files += 1
             continue
+        elif bad_shaped_images is not None and image_file_path in bad_shaped_images:
+            continue
         if measurement_id in reports_dic:
             usable_reports_lst.append(image_file_path)
             reports_dic[measurement_id]['images'].append((image_file_path, usable_index))
@@ -83,7 +86,6 @@ def process_data(reports_df, images_df, images_dir):
         else:
             num_images_not_in_reports += 1
         total_images += 1
-
     return (reports_dic, usable_reports_lst, index_to_label, seedlings_dic,
             num_missing_image_files, num_images_not_in_reports, total_images)
 
@@ -114,7 +116,6 @@ class FawDataset(torch.utils.data.Dataset):
         im_path = self.images[index]
         img = cv2.imread(im_path)
         label = self.labels[index]
-        # img = cv2.resize(img, (512,512))
         img = self.transform(np.array(img))
         img = torch.FloatTensor(img)
 
@@ -149,24 +150,23 @@ def faw_batch_sampler(batches):
     for i in range(len(batches)):
         yield batches[i]
 
-
 # %%
 ##for testing
 
-reports_file = "D:\Kenya IPM field reports.xls"
-images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
-reports_df = pd.read_excel(reports_file, header=None)
-images_df = pd.read_excel(images_file, header=None)
-
-USB_PATH = r"D:\2019_clean2"
-
-usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
-    reports_df, images_df, USB_PATH)
-
-ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
-
-batches = make_batches(20, usable_reports_dic)
-batches2 = make_batches(5, usable_reports_dic)
-sampler = faw_batch_sampler(batches)
-
-dl = DataLoader(ds, batch_sampler=sampler)
+# reports_file = "D:\Kenya IPM field reports.xls"
+# images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
+# reports_df = pd.read_excel(reports_file, header=None)
+# images_df = pd.read_excel(images_file, header=None)
+#
+# USB_PATH = r"D:\2019_clean2"
+#
+# usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images = process_data(
+#     reports_df, images_df, USB_PATH)
+#
+# ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
+#
+# batches = make_batches(20, usable_reports_dic)
+# batches2 = make_batches(5, usable_reports_dic)
+# sampler = faw_batch_sampler(batches)
+#
+# dl = DataLoader(ds, batch_sampler=sampler)
