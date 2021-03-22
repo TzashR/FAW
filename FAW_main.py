@@ -1,4 +1,3 @@
-# %%
 import argparse
 import pandas as pd
 import torch.optim
@@ -7,6 +6,7 @@ from tqdm import tqdm
 from CNN import FawNet
 from Data_Loader import process_data, faw_batch_sampler, make_batches, FawDataset, faw_transform
 import pickle
+import os
 
 def main():
     ### test if cuda is connected:
@@ -26,6 +26,7 @@ def main():
     parser.add_argument("reports_file", help="File path to the reports table")
     parser.add_argument("images_table_file", help="File path to the image table")
     parser.add_argument("images_root_directory", help="path to images root directory")
+    parser.add_argument("outputs_directory", help="path directory where outputs will be saved")
     parser.add_argument("--is_gpu", help="path to images root directory", type=bool, default=False)
     parser.add_argument("-pb","--with_pbar", help="Should have progress bar", type=bool, default=False)
     parser.add_argument("-bs","--bad_shapes", help="File with paths to bad images", default=None)
@@ -36,6 +37,7 @@ def main():
     reports_file = args.reports_file
     images_file = args.images_table_file
     images_root_directory = args.images_root_directory
+    outputs_dir = args.outputs_directory
     is_gpu = args.is_gpu
     with_pbar = args.with_pbar
     bad_shape_images_path = args.bad_shapes
@@ -70,30 +72,32 @@ def main():
     train_sampler = faw_batch_sampler(all_batches[:train_until_index])
     test_sampler = faw_batch_sampler(all_batches[train_until_index:])
 
-##save test indices in file to be used later
-    with open("test indices",'wb') as f:
+##save test and train indices in file to be used later
+    with open(os.path.join(outputs_dir,"test_indices"),'wb') as f:
         pickle.dump(all_batches[train_until_index:], f)
 
-    with open("train indices",'wb') as f:
+    with open(os.path.join(outputs_dir,"train indices"),'wb') as f:
         pickle.dump(all_batches[:train_until_index], f)
 
     train_dl = DataLoader(ds, batch_sampler=train_sampler)
     test_dl = DataLoader(ds, batch_sampler=test_sampler)
     # the cnn
     model = FawNet()
-    if is_gpu: model = model.cuda()
+    if is_gpu: model.cuda()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = torch.nn.MSELoss()
 
     epoch_loss = 0.0
     epochs_bar = tqdm(epochs, total=epochs, disable=(not with_pbar), desc="epochs", position=0,leave=True)
-    for epoch in tqdm(range(epochs)):
+    for epoch in range(epochs):
         running_loss = 0.0
-        batches_bar = tqdm(train_until_index//batch_size, total=train_until_index//batch_size, disable=(not with_pbar), desc="batches in epoch", position=0,leave=True)
+        batches_bar = tqdm(train_until_index//batch_size, total=train_until_index//batch_size, disable=(not with_pbar), desc="batches in epoch", position=1,leave=True)
         for i, data in enumerate(train_dl, 0):
             inputs, labels = data
-            labels = torch.FloatTensor(labels.float())
-            if is_gpu: inputs, labels = inputs.cuda(), labels.cuda()
+            if is_gpu:
+                inputs = inputs.cuda()
+                labels = labels.cuda()
+
             optimizer.zero_grad()
             outputs = model(inputs)
             outputs = outputs.flatten()
@@ -110,10 +114,10 @@ def main():
             #     running_loss = 0.0
             #     break
         # print(f' loss for epoch {epoch} = {epoch_loss / train_until_index}')
-        if (with_pbar):
+        if with_pbar:
             epochs_bar.update(n=1)
     print("finished training!")
-    torch.save(model.state_dict(), 'faw_trained.pt')
+    torch.save(model.state_dict(), os.path.join(outputs_dir,'faw_trained.pt'))
 
 
 def get_n_params(model):
