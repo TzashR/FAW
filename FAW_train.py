@@ -17,7 +17,7 @@ def main():
     parser.add_argument("outputs_directory", help="path directory where outputs will be saved")
     parser.add_argument("--is_gpu", help="path to images root directory", type=bool, default=False)
     parser.add_argument("-pb","--with_pbar", help="Should have progress bar", type=bool, default=False)
-    parser.add_argument("-pl","--print_losss", help="Should print loss while training", default=False)
+    parser.add_argument("-pl","--print_loss", help="Should print loss while training", default=False)
     parser.add_argument("-bs","--bad_shapes", help="File with paths to bad images", default=None)
     args = parser.parse_args()
 
@@ -65,14 +65,11 @@ def main():
         pickle.dump(all_batches[train_until_index:], f)
     with open(os.path.join(outputs_dir,"train indices"),'wb') as f:
         pickle.dump(all_batches[:train_until_index], f)
-    #save test dl to be used in test
-    with open(os.path.join(outputs_dir,"test dl"),'wb') as f:
-        pickle.dump(test_dl, f)
 
     # the cnn
     model = FawNet()
     if is_gpu: model.cuda()
-    train_epochs(model,train_dl,epochs,train_until_index,batch_size,with_pbar,print_loss)
+    train_epochs(model = model,train_dl = train_dl,num_epochs=epochs,train_until_index = train_until_index,batch_size = batch_size,with_pbar = with_pbar,print_loss = print_loss, is_gpu = is_gpu)
     torch.save(model.state_dict(), os.path.join(outputs_dir,'faw_trained.pt'))
 
 if __name__ == '__main__':

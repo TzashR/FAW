@@ -147,7 +147,7 @@ def is_cuda():
     print(f' is cuda available {torch.cuda.is_available()}')
     ###
 
-def train_epochs(model,train_dl,num_epochs,train_until_index,batch_size, is_gpu, with_pbar = False, print_loss = False):
+def train_epochs(model,train_dl,num_epochs,train_until_index,batch_size, is_gpu = False, with_pbar = False, print_loss = False):
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = torch.nn.MSELoss()
 
@@ -158,6 +158,7 @@ def train_epochs(model,train_dl,num_epochs,train_until_index,batch_size, is_gpu,
         batches_bar = tqdm(train_until_index//batch_size, total=train_until_index//batch_size, disable=(not with_pbar), desc="batches in epoch", position=1,leave=True)
         for i, data in enumerate(train_dl, 0):
             inputs, labels = data
+
             if is_gpu:
                 inputs = inputs.cuda()
                 labels = labels.cuda()
@@ -166,7 +167,7 @@ def train_epochs(model,train_dl,num_epochs,train_until_index,batch_size, is_gpu,
             outputs = model(inputs)
             outputs = outputs.flatten()
             assert (labels.shape == outputs.shape)
-            loss = criterion(outputs, labels)
+            loss = criterion(outputs, labels.type(torch.float32))
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
