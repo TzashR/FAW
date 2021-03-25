@@ -1,8 +1,6 @@
 import os
 import random
-from tqdm import tqdm
 import torch.optim
-from torch.utils.data import DataLoader
 
 ###DATA PROCESSING SERVICES
 def fix_id(id, i=-1):
@@ -147,39 +145,4 @@ def is_cuda():
     print(f' is cuda available {torch.cuda.is_available()}')
     ###
 
-def train_epochs(model,train_dl,num_epochs,train_until_index,batch_size, is_gpu = False, with_pbar = False, print_loss = False):
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    criterion = torch.nn.MSELoss()
 
-    epoch_loss = 0.0
-    epochs_bar = tqdm(num_epochs, total=num_epochs, disable=(not with_pbar), desc="epochs", position=0, leave=True)
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        batches_bar = tqdm(train_until_index//batch_size, total=train_until_index//batch_size, disable=(not with_pbar), desc="batches in epoch", position=1,leave=True)
-        for i, data in enumerate(train_dl, 0):
-            inputs, labels = data
-
-            if is_gpu:
-                inputs = inputs.cuda()
-                labels = labels.cuda()
-
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            outputs = outputs.flatten()
-            assert (labels.shape == outputs.shape)
-            loss = criterion(outputs, labels.type(torch.float32))
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item()
-            if with_pbar:
-                batches_bar.update(n=1)
-            if print_loss:
-                if i%100 == 0 :  # print every 100 mini-batches
-                        print('[%d, %5d] loss: %.3f' %
-                              (epoch + 1, i + 1, running_loss / 2000))
-                        running_loss = 0.0
-                        break
-                print(f' loss for epoch {epoch} = {epoch_loss / train_until_index}')
-        if with_pbar:
-            epochs_bar.update(n=1)
-    print("finished training!")
