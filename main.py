@@ -20,9 +20,9 @@ def main():
     parser.add_argument("images_table_file", help="File path to the image table")
     parser.add_argument("images_root_directory", help="path to directory where images are stored")
     parser.add_argument("outputs_dir", help="path directory where outputs will be saved")
-    parser.add_argument("--is_gpu", help="path to images root directory", type=bool, default=False)
-    parser.add_argument("-pb", "--with_pbar", help="Should have progress bar", type=bool, default=False)
-    parser.add_argument("-pl", "--print_loss", help="Should print loss while training", default=False)
+    parser.add_argument("--with_gpu", help="path to images root directory", action='store_true')
+    parser.add_argument("-pb", "--with_pbar", help="Should have progress bar", action='store_true')
+    parser.add_argument("-pl", "--print_loss", help="Should print loss while training", action='store_true')
     parser.add_argument("-bs", "--bad_shaped_images", help="File with paths to bad images", default=None)
     args = parser.parse_args()
 
@@ -45,7 +45,7 @@ def main():
 
     # the cnn
     model = FawNet()
-    if args.is_gpu: model.cuda()
+    if args.with_gpu: model.cuda()
     ## train the model
     for epoch in range(args.epochs):
         train_sampler = faw_batch_sampler(all_batches[:train_until_index])
