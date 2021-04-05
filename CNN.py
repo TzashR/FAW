@@ -1,6 +1,4 @@
-# %%
 from torch.nn import Linear, ReLU, Conv2d, MaxPool2d, Module, BatchNorm2d, Dropout, Sequential, Flatten,BatchNorm1d
-from torchsummary import summary
 
 
 
