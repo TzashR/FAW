@@ -54,7 +54,7 @@ def main():
         if args.with_pbar: print(f'epoch #{epoch + 1}')
         epoch_loss = train_epoch(model=model, train_dl=train_dl, train_until_index=train_until_index,
                                   batch_size=args.batch_size, with_pbar=args.with_pbar, print_loss=args.print_loss,
-                                  is_gpu=args.is_gpu)
+                                  with_gpu=args.with_gpu)
         if args.print_loss:
             print(f' loss for epoch {epoch} = {epoch_loss / train_until_index}')
     print("finished training!")
