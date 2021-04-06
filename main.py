@@ -40,7 +40,7 @@ def main():
     train_until_index = int(len(all_batches) * train_set_size)
     assert train_until_index > 0
 
-    outputs_dir = os.path.join(args.outputs_dir,f"{datetime.today().strftime('%d/%m/%Y')} {datetime.now().strftime('%h:%m')}")
+    outputs_dir = os.path.join(args.outputs_dir,f"{datetime.today().strftime('%d%m%Y')} {datetime.now().strftime('%H%M')}")
     os.mkdir(outputs_dir)
     ##save test and train indices in file to be used later
     with open(os.path.join(outputs_dir, "test_indices"), 'wb') as f:
