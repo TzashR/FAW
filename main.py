@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+from datetime import datetime
 
 import torch.optim
 from torch.utils.data import DataLoader
@@ -8,6 +9,7 @@ from torch.utils.data import DataLoader
 from CNN import FawNet
 from Data_Loader import make_ds_and_batches
 from services import faw_batch_sampler
+from services import is_cuda
 from train_and_test import train_epoch
 
 
@@ -36,25 +38,30 @@ def main():
     assert (1 > test_set_size > 0 and 1 > train_set_size > 0 and train_set_size + test_set_size + val_set_size == 1)
 
     train_until_index = int(len(all_batches) * train_set_size)
+    assert train_until_index > 0
 
+    outputs_dir = os.path.join(args.outputs_dir,f"{datetime.today().strftime('%d/%m/%Y')} {datetime.now().strftime('%h:%m')}")
+    os.mkdir(outputs_dir)
     ##save test and train indices in file to be used later
-    with open(os.path.join(args.outputs_dir, "test_indices"), 'wb') as f:
+    with open(os.path.join(outputs_dir, "test_indices"), 'wb') as f:
         pickle.dump(all_batches[train_until_index:], f)
-    with open(os.path.join(args.outputs_dir, "train indices"), 'wb') as f:
+    with open(os.path.join(outputs_dir, "train indices"), 'wb') as f:
         pickle.dump(all_batches[:train_until_index], f)
 
     # the cnn
     model = FawNet()
     if args.with_gpu: model.cuda()
     ## train the model
+    print("on our way")
+    is_cuda()
     for epoch in range(args.epochs):
         train_sampler = faw_batch_sampler(all_batches[:train_until_index])
         train_dl = DataLoader(ds, batch_sampler=train_sampler)
 
         if args.with_pbar: print(f'epoch #{epoch + 1}')
         epoch_loss = train_epoch(model=model, train_dl=train_dl, train_until_index=train_until_index,
-                                  batch_size=args.batch_size, with_pbar=args.with_pbar, print_loss=args.print_loss,
-                                  with_gpu=args.with_gpu)
+                                 batch_size=args.batch_size, with_pbar=args.with_pbar, print_loss=args.print_loss,
+                                 with_gpu=args.with_gpu)
         if args.print_loss:
             print(f' loss for epoch {epoch} = {epoch_loss / train_until_index}')
     print("finished training!")
