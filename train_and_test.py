@@ -15,7 +15,7 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
         optimizer.zero_grad()
         outputs = model(inputs)
         outputs = outputs.flatten()
-        assert (labels.shape == outputs.shape)
+        assert (labels.shape == outputs.shape), f"labels.shape = {labels.shape}, outputs.shape = {outputs.shape}"
         loss = criterion(outputs, labels.type(torch.float32))
         loss.backward()
         optimizer.step()
