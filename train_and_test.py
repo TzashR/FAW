@@ -1,7 +1,7 @@
 import torch.optim
 from tqdm import tqdm
 
-def train_epoch(model, train_dl, train_until_index, batch_size, with_gpu = False, with_pbar = False, print_loss = False):
+def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pbar = False, print_loss = False):
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     criterion = torch.nn.MSELoss()
     epoch_loss = 0.0
@@ -10,9 +10,7 @@ def train_epoch(model, train_dl, train_until_index, batch_size, with_gpu = False
     for i, data in enumerate(train_dl, 0):
         inputs, labels = data
 
-        if with_gpu:
-            inputs = inputs.cuda()
-            labels = labels.cuda()
+        inputs, labels = inputs.to(device), inputs.to(device)
 
         optimizer.zero_grad()
         outputs = model(inputs)

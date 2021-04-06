@@ -22,11 +22,11 @@ def main():
     parser.add_argument("images_table_file", help="File path to the image table")
     parser.add_argument("images_root_directory", help="path to directory where images are stored")
     parser.add_argument("outputs_dir", help="path directory where outputs will be saved")
-    parser.add_argument("--with_gpu", help="path to images root directory", action='store_true')
     parser.add_argument("-pb", "--with_pbar", help="Should have progress bar", action='store_true')
     parser.add_argument("-pl", "--print_loss", help="Should print loss while training", action='store_true')
     parser.add_argument("-bs", "--bad_shaped_images", help="File with paths to bad images", default=None)
     args = parser.parse_args()
+
 
     ds, all_batches = make_ds_and_batches(args.reports_file, args.images_table_file, args.images_root_directory,
                                           'train',
@@ -49,11 +49,20 @@ def main():
         pickle.dump(all_batches[:train_until_index], f)
 
     # the cnn
-    model = FawNet()
-    if args.with_gpu: model.cuda()
+    with_gpu =torch.cuda.is_available()
+
+    if with_gpu:
+        model.cuda()
+        device = torch.device("cuda:0")
+        print("running on GPU")
+    else:
+        device = torch.device("cpu")
+        print("running on CPU")
+
+    model = FawNet().to(device)
+
     ## train the model
     print("on our way")
-    is_cuda()
     for epoch in range(args.epochs):
         train_sampler = faw_batch_sampler(all_batches[:train_until_index])
         train_dl = DataLoader(ds, batch_sampler=train_sampler)
@@ -61,7 +70,7 @@ def main():
         if args.with_pbar: print(f'epoch #{epoch + 1}')
         epoch_loss = train_epoch(model=model, train_dl=train_dl, train_until_index=train_until_index,
                                  batch_size=args.batch_size, with_pbar=args.with_pbar, print_loss=args.print_loss,
-                                 with_gpu=args.with_gpu)
+                                 device = device)
         if args.print_loss:
             print(f' loss for epoch {epoch} = {epoch_loss / train_until_index}')
     print("finished training!")
