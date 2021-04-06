@@ -42,6 +42,7 @@ def main():
 
     outputs_dir = os.path.join(args.outputs_dir,f"{datetime.today().strftime('%d%m%Y')} {datetime.now().strftime('%H%M')}")
     os.mkdir(outputs_dir)
+    os.chmod(outputs_dir,0o777)
     ##save test and train indices in file to be used later
     with open(os.path.join(outputs_dir, "test_indices"), 'wb') as f:
         pickle.dump(all_batches[train_until_index:], f)
