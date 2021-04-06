@@ -52,7 +52,6 @@ def main():
     with_gpu =torch.cuda.is_available()
 
     if with_gpu:
-        model.cuda()
         device = torch.device("cuda:0")
         print("running on GPU")
     else:
