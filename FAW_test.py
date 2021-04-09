@@ -27,7 +27,7 @@ def main():
     with open(args.test_indices_path, 'rb') as f:
         test_indices = pickle.load(f)
     test_sampler = faw_batch_sampler(test_indices)
-    ds = make_ds_and_batches(args.reports_file,args.images_table_file,args.images_root_directory,'test',bad_shape_images_path=args.bad_shaoe_images_path)[0]
+    ds = make_ds_and_batches(args.reports_file,args.images_table_file,args.images_root_directory,'test',bad_shape_images_path=args.bad_shapes)[0]
     test_dl = DataLoader(ds, batch_sampler=test_sampler)
 
     criterion = torch.nn.MSELoss()
