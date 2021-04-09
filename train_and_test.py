@@ -35,11 +35,3 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
     return epoch_loss
 
 
-def test_model(model, test_dl, outputs_dir):
-    '''
-    Tests a train model
-    @param model: trained model
-    @param outputs_dir: dir to save output in
-    @return:
-    '''
-    pass
