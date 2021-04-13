@@ -1,6 +1,4 @@
-
-#%%
-# import argparse
+import argparse
 import os
 import pickle
 from datetime import datetime
@@ -13,7 +11,6 @@ from Data_Loader import make_ds_and_batches
 from services import faw_batch_sampler
 from services import is_cuda
 from train_and_test import train_epoch
-#%%
 
 def main():
     ##### receiving user input
