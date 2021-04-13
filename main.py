@@ -49,8 +49,7 @@ def main():
         pickle.dump(all_batches[:train_until_index], f)
 
     # the cnn
-    # with_gpu =torch.cuda.is_available()
-    with_gpu = False
+    with_gpu =torch.cuda.is_available()
 
     if with_gpu:
         device = torch.device("cuda:0")
