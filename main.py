@@ -57,12 +57,12 @@ def main():
     else:
         device = torch.device("cpu")
         print("running on CPU")
-        
+
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
     a = torch.cuda.memory_allocated(0)
     f = r - a  # free inside reserved
-
+    print(f'total memory = {t} , reserved memory = {r}, allocated memory = {a}, free memory = {f}')
 
     model = FawNet().to(device)
 
