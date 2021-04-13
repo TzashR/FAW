@@ -11,7 +11,9 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
                        desc="batches in epoch", position=0, leave=True, ascii=True)
     for i, data in enumerate(train_dl, 0):
         inputs, labels = data
+        print(f' inputs.shape = {inputs.shape}, labels.shape = {labels.shape}')
         inputs, labels = inputs.to(device), labels.to(device)
+    
 
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -36,7 +38,7 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
         r = torch.cuda.memory_reserved(0)
         a = torch.cuda.memory_allocated(0)
         f = r - a  # free inside reserved
-        
+
         print(f'total memory = {t} , reserved memory = {r}, allocated memory = {a}, free memory = {f}')
 
     return epoch_loss
