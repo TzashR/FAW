@@ -11,7 +11,7 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
                        desc="batches in epoch", position=0, leave=True, ascii=True)
     for i, data in enumerate(train_dl, 0):
         inputs, labels = data
-
+        print(f'inputs.shape = {inputs.shape},labels.shape = {inputs.shape}')
         inputs, labels = inputs.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -25,8 +25,8 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
         if with_pbar:
             batches_bar.update(n=1)
         if print_loss:
-            msg = f'current loss {running_loss / 100}'
             if i % 100 == 0 and i > 0:  # print every 100 mini-batches
+                msg = f'current loss {running_loss / 100}'
                 if with_pbar:
                     tqdm.write(msg)
                 else:

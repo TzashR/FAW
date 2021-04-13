@@ -1,4 +1,6 @@
-import argparse
+
+#%%
+# import argparse
 import os
 import pickle
 from datetime import datetime
@@ -11,7 +13,7 @@ from Data_Loader import make_ds_and_batches
 from services import faw_batch_sampler
 from services import is_cuda
 from train_and_test import train_epoch
-
+#%%
 
 def main():
     ##### receiving user input
@@ -76,7 +78,7 @@ def main():
     print("finished training!")
 
     ##save the trained model
-    torch.save(model.state_dict(), os.path.join(args.outputs_dir, 'faw_trained.pt'))
+    torch.save(model.state_dict(), os.path.join(outputs_dir, 'faw_trained.pt'))
     # test the model
     # test_sampler = faw_batch_sampler(all_batches[train_until_index:])
     # test_dl = DataLoader(ds, batch_sampler=test_sampler)
@@ -86,28 +88,46 @@ def main():
 if __name__ == '__main__':
     main()
 
-# #%%
-# from train_and_test import train_epochs
-# reports_file = "D:\Kenya IPM field reports.xls"
-# images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
-# bad_shape_images = r"C:\Users\User\Development\MA\FAW\bad shaped images clean"
-# USB_PATH = r"D:\2019_clean2"
+#%%
+reports_file = "D:\Kenya IPM field reports.xls"
+images_file = "D:\Kenya IPM measurement to photo conversion table.xls"
+bad_shape_images = r"C:\Users\User\Development\MA\FAW\bad shaped images clean"
+USB_PATH = r"D:\2019_clean2"
+
+ds,all_batches = make_ds_and_batches(reports_file,images_file,USB_PATH,'train',bad_shape_images_path=bad_shape_images,batch_size=1)
+
+#%%
+
+#%%
+train_set_size = 0.75  # how many (out of 1) should be in the training set.
+test_set_size = 0.25
+val_set_size = 1 - test_set_size - train_set_size
+assert (1 > test_set_size > 0 and 1 > train_set_size > 0 and train_set_size + test_set_size + val_set_size == 1)
+
+train_until_index = int(len(all_batches) * train_set_size)
+train_sampler = faw_batch_sampler(all_batches[:train_until_index])
+test_sampler = faw_batch_sampler(all_batches[train_until_index:])
+train_dl = DataLoader(ds, batch_sampler=train_sampler)
+test_dl = DataLoader(ds, batch_sampler=test_sampler)
 #
-# ds,all_batches = make_ds_and_batches(reports_file,images_file,USB_PATH,'train',bad_shape_images_path=bad_shape_images,batch_size=1)
-#
-# #%%
-# train_set_size = 0.75  # how many (out of 1) should be in the training set.
-# test_set_size = 0.25
-# val_set_size = 1 - test_set_size - train_set_size
-# assert (1 > test_set_size > 0 and 1 > train_set_size > 0 and train_set_size + test_set_size + val_set_size == 1)
-#
-# train_until_index = int(len(all_batches) * train_set_size)
-# train_sampler = faw_batch_sampler(all_batches[:train_until_index])
-# test_sampler = faw_batch_sampler(all_batches[train_until_index:])
-# train_dl = DataLoader(ds, batch_sampler=train_sampler)
-# test_dl = DataLoader(ds, batch_sampler=test_sampler)
-#
-# #%%
-# model = FawNet()
-# train_epochs(model=model, train_dl=train_dl, num_epochs=2, train_until_index = train_until_index,
-#              batch_size=1, with_pbar=True, print_loss=True, is_gpu=False)
+#%%
+myModel = FawNet()
+model = torch.load(r"C:\Users\User\Development\MA\FAW\outputs\08042021 1231\faw_trained.pt",map_location=torch.device('cpu'))
+myModel.load_state_dict(model)
+
+#%%
+criterion = torch.nn.MSELoss()
+running_loss = 0.0
+torch.no_grad()
+x = enumerate(train_dl, 0)
+#%%
+inputs, labels = x.__next__()[1]
+outputs = myModel(inputs)
+outputs = outputs.flatten()
+assert (labels.shape == outputs.shape), f"labels.shape = {labels.shape}, outputs.shape = {outputs.shape}"
+loss = criterion(outputs, labels.type(torch.float32))
+
+#%%
+print(outputs)
+print(labels)
+print(loss.item())
