@@ -2,9 +2,8 @@ import torch.optim
 from tqdm import tqdm
 
 
-def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pbar=False, print_loss=False):
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    criterion = torch.nn.MSELoss()
+def train_epoch(model, train_dl, train_until_index, batch_size, device, optimizer, criterion, with_pbar=False,
+                print_loss=False):
     epoch_loss = 0.0
     running_loss = 0.0
     batches_bar = tqdm(train_until_index // batch_size, total=train_until_index // batch_size, disable=(not with_pbar),
@@ -21,7 +20,6 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
         print(f'total memory = {t} , reserved memory = {r}, allocated memory = {a}, free memory = {f}')
 
         inputs, labels = inputs.to(device), labels.to(device)
-    
 
         optimizer.zero_grad()
         outputs = model(inputs)
@@ -42,7 +40,4 @@ def train_epoch(model, train_dl, train_until_index, batch_size, device, with_pba
                     print(msg)
                 running_loss = 0.0
 
-
     return epoch_loss
-
-

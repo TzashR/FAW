@@ -67,7 +67,8 @@ def main():
 
 
     model = FawNet().to(device)
-
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    criterion = torch.nn.MSELoss()
     ## train the model
     print("on our way")
     for epoch in range(args.epochs):
@@ -75,7 +76,7 @@ def main():
         train_dl = DataLoader(ds, batch_sampler=train_sampler)
 
         if args.with_pbar: print(f'epoch #{epoch + 1}')
-        epoch_loss = train_epoch(model=model, train_dl=train_dl, train_until_index=train_until_index,
+        epoch_loss = train_epoch(model=model, train_dl=train_dl, train_until_index=train_until_index, optimizer=optimizer, criterion = criterion,
                                  batch_size=args.batch_size, with_pbar=args.with_pbar, print_loss=args.print_loss,
                                  device = device)
         if args.print_loss:
