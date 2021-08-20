@@ -4,7 +4,7 @@ import re
 import cv2
 import pickle
 def main():
-    ap=argparse.ArgumentParser()
+        ap=argparse.ArgumentParser()
 
     ap.add_argument('images_root_dir',type=str)
     args=ap.parse_args()
@@ -54,3 +54,5 @@ def main():
 
         # print(f"missing  = {missing}"
 
+if __name__ == '__main__':
+    main()

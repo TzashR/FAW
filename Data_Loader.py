@@ -18,31 +18,36 @@ class FawDataset(torch.utils.data.Dataset):
 
         self.images = images
         self.labels = labels
+        self.perm = np.arange(len(self.images))#np.random.permutation(len(self.images))
+
+    def shuffle(self):
+        self.perm = np.random.permutation(len(self.images))
 
     def __getitem__(self, index):
+        index = self.perm[index]
         im_path = self.images[index]
         img = cv2.imread(im_path)
         label = self.labels[index]
         img = self.transform(np.array(img))
         img = torch.FloatTensor(img)
 
-        return img, label
+        return {"image": img, "label": label}
 
     def __len__(self):
-        len(self.images.items())
+        len(self.labels)
+
 
 def hello():
     return "hello"
 
+
 def faw_transform(img):
-    new_img = np.zeros((img.shape[0], img.shape[1], 4))
-    new_img[:, :, :3] = img / 255.0
-    # adds GRVI channel. (r+g)/(r-g)
-    new_img[:, :, 3] = (new_img[:, :, 1] - new_img[:, :, 0]) / (new_img[:, :, 0] + new_img[:, :, 1] + .00001)
+    new_img = np.zeros((img.shape[0], img.shape[1], 3))
+    new_img = img / 255.0
     if new_img.shape[0] < new_img.shape[1]:  # height first
         new_img = np.transpose(new_img, (1, 0, 2))
     new_img = np.transpose(new_img, (2, 0, 1))
-    assert (new_img.shape == (4, 1600, 960)), f'new_img shape {new_img.shape}, img shape {img.shape} img = {img}'
+    assert (new_img.shape == (3, 1600, 960)), f'new_img shape {new_img.shape}, img shape {img.shape} img = {img}'
     return new_img
 
 
@@ -67,7 +72,7 @@ def make_ds_and_batches(reports_file, images_file, images_root_directory, mode, 
     else:
         bad_shape_images = None
 
-    #get and process the data
+    # get and process the data
     reports_df = pd.read_excel(reports_file, header=None)
     images_df = pd.read_excel(images_file, header=None)
     usable_reports_dic, usable_reports_lst, index_to_label, seedling_reports, missing_image_files, reportless_images, total_images \
@@ -75,7 +80,7 @@ def make_ds_and_batches(reports_file, images_file, images_root_directory, mode, 
         reports_df, images_df, images_root_directory, bad_shape_images)
     ds = FawDataset(images=usable_reports_lst, labels=index_to_label, transform=faw_transform)
     if mode == 'train':
-        all_batches = make_batches(batch_size, usable_reports_dic)
+        all_batches = make_batches(batch_size, usable_reports_lst)
         return ds, all_batches
     else:
         return ds

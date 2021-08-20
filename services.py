@@ -88,25 +88,17 @@ def process_data(reports_df, images_df, images_dir, bad_shaped_images=None):
             num_missing_image_files, num_images_not_in_reports, total_images)
 
 
-def make_batches(batch_size, reports_dic, min_images=5, seed=0):
-    # list of all reports with at least min_images images
-    usable_reports = list(filter(lambda report: len(report[1]['images']) >= min_images, reports_dic.items()))
-    random.shuffle(usable_reports)
-    n = len(usable_reports)
-    num_of_batches, remainder = n // batch_size, n % batch_size
-
-    # batches at this point are reports, we need to convert them to image indices
-    batch_reports = [usable_reports[i:i + batch_size] for i in range(num_of_batches)]
-    if remainder > 0: batch_reports.append(usable_reports[-remainder:])
-
+def make_batches(batch_size, reports_list):
     batches = []
-    # converts all reports in batches to a list of image indices
-    for rep_batch in batch_reports:
-        batch_indices = []
-        for report in rep_batch:
-            for image_tuple in report[1]['images']:  # image tuple contains path, index
-                batch_indices.append(image_tuple[1])
-        batches.append(batch_indices)
+    curr_batch = []
+    for i in range(len(reports_list)):
+        if len(curr_batch) == batch_size:
+            batches.append(curr_batch)
+            curr_batch = []
+        curr_batch.append(i)
+    if len(curr_batch) > 0:
+        batches.append(curr_batch)
+
     return batches
 
 

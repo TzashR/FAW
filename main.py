@@ -10,7 +10,19 @@ from CNN import FawNet
 from Data_Loader import make_ds_and_batches
 from services import faw_batch_sampler
 from services import is_cuda
-from train_and_test import train_epoch
+from tqdm import tqdm
+
+# from train_and_test import train_epoch
+
+def print_cuda(header):
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    a = torch.cuda.memory_allocated(0)
+    f = r - a  # free inside reserved
+
+    print(f'{header} total memory = {t} , reserved memory = {r}, allocated memory = {a}, free memory = {f}')
+    print(' ')
+
 
 def main():
     ##### receiving user input
@@ -26,7 +38,6 @@ def main():
     parser.add_argument("-bs", "--bad_shaped_images", help="File with paths to bad images", default=None)
     args = parser.parse_args()
 
-
     ds, all_batches = make_ds_and_batches(args.reports_file, args.images_table_file, args.images_root_directory,
                                           'train',
                                           bad_shape_images_path=args.bad_shaped_images, batch_size=args.batch_size)
@@ -39,9 +50,10 @@ def main():
     train_until_index = int(len(all_batches) * train_set_size)
     assert train_until_index > 0
 
-    outputs_dir = os.path.join(args.outputs_dir,f"{datetime.today().strftime('%d%m%Y')} {datetime.now().strftime('%H%M')}")
+    outputs_dir = os.path.join(args.outputs_dir,
+                               f"{datetime.today().strftime('%d%m%Y')} {datetime.now().strftime('%H%M')}")
     os.mkdir(outputs_dir)
-    os.chmod(outputs_dir,0o777)
+    os.chmod(outputs_dir, 0o777)
     ##save test and train indices in file to be used later
     with open(os.path.join(outputs_dir, "test_indices"), 'wb') as f:
         pickle.dump(all_batches[train_until_index:], f)
@@ -49,38 +61,71 @@ def main():
         pickle.dump(all_batches[:train_until_index], f)
 
     # the cnn
-    with_gpu =torch.cuda.is_available()
-
+    with_gpu = torch.cuda.is_available()
     if with_gpu:
         device = torch.device("cuda:0")
-        print("running on GPU")
-        torch.cuda.empty_cache()
-        t = torch.cuda.get_device_properties(0).total_memory
-        r = torch.cuda.memory_reserved(0)
-        a = torch.cuda.memory_allocated(0)
-        f = r - a  # free inside reserved
-        print(f'total memory = {t} , reserved memory = {r}, allocated memory = {a}, free memory = {f}')
-
+        print_cuda('running on GPU')
     else:
         device = torch.device("cpu")
         print("running on CPU")
 
-
     model = FawNet().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    criterion = torch.nn.MSELoss()
+    if with_gpu:
+        print_cuda('after loading the model')
+
     ## train the model
     print("on our way")
-    for epoch in range(args.epochs):
-        train_sampler = faw_batch_sampler(all_batches[:train_until_index])
-        train_dl = DataLoader(ds, batch_sampler=train_sampler)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    criterion = torch.nn.MSELoss()
+    train_sampler = faw_batch_sampler(all_batches[:train_until_index])
+    train_dl = DataLoader(ds, batch_sampler=train_sampler)
 
-        if args.with_pbar: print(f'epoch #{epoch + 1}')
-        epoch_loss = train_epoch(model=model, train_dl=train_dl, train_until_index=train_until_index, optimizer=optimizer, criterion = criterion,
-                                 batch_size=args.batch_size, with_pbar=args.with_pbar, print_loss=args.print_loss,
-                                 device = device)
+    for epoch in range(args.epochs):
+
+        if args.with_pbar:
+            print(f'epoch #{epoch + 1}')
+        ds.shuffle()
+        epoch_loss = 0.0
+        running_loss = 0.0
+        batches_bar = tqdm(train_until_index // args.batch_size, total=train_until_index // args.batch_size,
+                            disable=(not args.with_pbar),
+                            desc="batches in epoch", position=0, leave=True, ascii=True)
+        for i, data in enumerate(train_dl, 0):
+            inputs = data['image']
+            labels = data['label']
+
+#            print_cuda('Before loading batch to GPU: ')
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            #print_cuda('After loading batch to GPU: ')
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+#            print_cuda('After output calculation1: ')
+            outputs = outputs.flatten()
+#            print_cuda('After output calculation2: ')
+            # print(outputs.shape)
+            assert (labels.shape == outputs.shape), f"labels.shape = {labels.shape}, outputs.shape = {outputs.shape}"
+            if True:
+                loss = criterion(outputs, labels.type(torch.float32))
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+                epoch_loss += loss.item()
+
+            if args.with_pbar:
+                batches_bar.update(n=1)
+            if args.print_loss:
+                if i % 100 == 0 and i > 0:  # print every 100 mini-batches
+                    msg = f'current loss {running_loss / 100}'
+                    if args.with_pbar:
+                        tqdm.write(msg)
+                    else:
+                        print(msg)
+                    running_loss = 0.0
+
         if args.print_loss:
-            print(f' loss for epoch {epoch} = {epoch_loss / train_until_index}')
+            print(f' Average loss for epoch {epoch} = {epoch_loss / (args.batch_size*train_until_index)}')
     print("finished training!")
 
     ##save the trained model
